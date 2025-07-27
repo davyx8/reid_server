@@ -66,7 +66,9 @@ def detect_frame(frame):
     for box, cls, conf in zip(boxes.xyxy.cpu().numpy(),
                               boxes.cls.cpu().numpy(),
                               boxes.conf.cpu().numpy()):
-        if conf < 0.35:  # looser for objects
+        if int(cls)==0 and conf < 0.35:
+            continue
+        elif int(cls)!=0  and conf < 0.70:# strict for objects
             continue
         (x1, y1, x2, y2) = map(int, box)
         if int(cls) == 0:
@@ -369,11 +371,26 @@ with open(args.csv, 'w', newline='') as f:
         fmt = lambda L: '; '.join(f"{s:.2f}-{e:.2f}s" for s, e in L)
         writer.writerow([gid, fmt(v1), fmt(v2)])
 
+anoms1 = defaultdict(list)
+anoms2 = defaultdict(list)
+for t in tracks_video1 +  tracks_video2:
+    # look up which dict to use
+    amap = anoms1 if t.video_id == 1 else anoms2
+    for fr, typ, det in t.anomalies:
+        # find the bbox for that exact frame
+        for fnum, bbox in track_bboxes[t]:
+            if fnum == fr:
+                amap[fr].append((bbox, t.id, typ, det))
+                for i in range(30):
+                    amap[fr+i].append((bbox, t.id, typ, det))
+
+                break
+
 
 # -----------------------------------------------------------------------------
 # Two-pass annotation using final global IDs
 # -----------------------------------------------------------------------------
-def annotate_video(in_path, out_path, fps, bboxes):
+def annotate_video(in_path, out_path, fps, bboxes,anomalies_map):
     cap = cv2.VideoCapture(in_path)
     width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
     height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
@@ -390,6 +407,15 @@ def annotate_video(in_path, out_path, fps, bboxes):
             cv2.rectangle(frame, (x, y), (x + w_, y + h_), (0, 255, 0), 2)
             cv2.putText(frame, f"ID{gid}", (x, y - 10),
                         cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 255, 0), 2)
+        for bbox, gid, typ, det in anomalies_map.get(frame_idx, []):
+            x, y, w_, h_ = bbox
+            text = f"{typ}:{det}"
+            # draw a semi‑transparent background (optional)
+            (tw, th), _ = cv2.getTextSize(text, cv2.FONT_HERSHEY_SIMPLEX, 0.5, 1)
+            cv2.rectangle(frame, (x, y + h_ + 2), (x + tw, y + h_ + th + 2),
+                          (0, 0, 0), cv2.FILLED)
+            cv2.putText(frame, text, (x, y + h_ + th + 2),
+                        cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 1)
         writer.write(frame)
     cap.release()
     writer.release()
@@ -405,7 +431,7 @@ for t, lst in track_bboxes.items():
         else:
             per2[fnum].append((bbox, t.id))
 
-annotate_video(args.video1, args.output1, fps1, per1)
-annotate_video(args.video2, args.output2, fps2, per2)
+annotate_video(args.video1, args.output1, fps1, per1,anoms1)
+annotate_video(args.video2, args.output2, fps2, per2,anoms2)
 
 print("Done! Videos annotated with consistent IDs and CSV saved.")
