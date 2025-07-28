@@ -3,7 +3,11 @@ import faiss, numpy as np, pickle
 from sqlalchemy.orm import Session
 from .models import Person, Appearance, Anomaly
 from .track_impl import build_anomaly_map, run_tracking, write_annotated_video
+from sqlalchemy import exists, and_
+from .models import Appearance   # already imported elsewhere
 
+def intervals_overlap(a_start, a_end, b_start, b_end):
+    return not (a_end < b_start or a_start > b_end)
 
 class PersonIndex:
     """A Faiss index that lives on disk and mirrors the Person table."""
@@ -77,9 +81,31 @@ def process_single_video(video_row, session):
 
     for g in groups:
         # average feature for the whole person
+
+
+
         mean_feat = np.mean([t.avg_feature() for t in g], axis=0)
         gid, _ = pidx.match(mean_feat)
+        # ░░░ 1️⃣  TEMPORAL‑EXCLUSIVITY GUARD ░░░
+        if gid is not None:
+            # convert current group’s time span to seconds
+            g_start = min(t.start_frame for t in g) / fps
+            g_end = max(t.end_frame for t in g) / fps
 
+            conflict = session.query(
+                exists().where(
+                    and_(
+                        Appearance.person_id == gid,
+                        Appearance.video_id == video_row.id,
+                        Appearance.start_ts <= g_end,
+                        Appearance.end_ts >= g_start
+                    )
+                )
+            ).scalar()
+
+            if conflict:
+                gid = None  # ←  pretend it was “no match”
+        # ░░░  END GUARD ░░░
         if gid is None:  # create a new global person
             p = Person()
             p.set_feat(mean_feat)

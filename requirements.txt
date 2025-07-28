@@ -2,7 +2,7 @@ fastapi
 uvicorn
 sqlalchemy
 faiss-cpu
-numpy
+numpy<2
 opencv-python
 ultralytics
 torch
