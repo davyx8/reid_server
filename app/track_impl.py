@@ -95,6 +95,7 @@ class Track:
     def __init__(self, bbox, feature, frame_idx, obj_set):
         self.local_id = Track.next_id; Track.next_id += 1
         self.bbox = bbox
+        self.gid = -1
         self.feature_sum = feature.copy(); self.feature_count = 1
         self.start_frame = self.end_frame = frame_idx
         self.active = True; self.missed = 0
@@ -219,10 +220,10 @@ def build_anomaly_map(tracks, track_bboxes, fps) -> Dict[int,List]:
             # locate bbox in that frame
             for fnum, bbox in track_bboxes[t]:
                 if fnum == fr:
-                    amap[fnum].append((bbox, t.local_id, typ, det))
+                    amap[fnum].append((bbox, t.gid, typ, det))
                     # show caption for ~1 s (≈ fps frames)
                     for i in range(int(fps)):
-                        amap[fnum+i].append((bbox, t.local_id, typ, det))
+                        amap[fnum+i].append((bbox, t.gid, typ, det))
                     break
     return amap
 
@@ -236,7 +237,7 @@ def write_annotated_video(in_path: str,
     per_frame = defaultdict(list)
     for t, lst in track_bboxes.items():
         for f, bbox in lst:
-            per_frame[f].append((bbox, t.local_id))
+            per_frame[f].append((bbox, t.gid))
 
     cap = cv2.VideoCapture(in_path)
     w,h = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH)), int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
