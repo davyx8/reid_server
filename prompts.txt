@@ -1,0 +1,17 @@
+"IM Gonna give u some code, it re identifies people with multiple tracks across two scenes. what i need to do is detect when one of the ids changed its clothes or is carrying an different object from before., will call that an anomaly, add a a way to do that with the existing reid_features, if it fioots, if not look for something else and tell me what it is : [code...]"
+
+"import cv2 ... this is a very nice script for two videos. now i need to do the same for multiple videos that are uploaded to a fast api with these endpoints: POST /videos Upload a new video and enqueue it for processing. Returns a new video_id. GET /persons Return a JSON list where each element contains: • person_id • appearances – all {video_id, start_ts, end_ts} segments where that person is visible GET /persons/{person_id}/anomalies Return the appearance‐change (anomaly)events detected for that specific person.... ofcourse i have to store track ids and feats in something when processing, and create debug videos after the whole video is done, obviously comapring to existing tracks from other videos, restructure my processing to code tto support that"
+
+"what do u mean my existence logic isolated into a fn??? i need it implemented!"
+
+"there is a buig in your code its looping endlessly on the videos"
+
+"ok this works, but when i run two videos in my naive scripts i had only two ids for 1 video correctly, now i get 7 something got messed upo in the logic fix it"
+
+"ok, but now i get two tracks on the same time getting the same id!!! fix that there was a temporal logic that prevented that: # check temporal exclusivity within same video conflict = False for other in global_id_to_tracks[gid]: if other.video_id == track.video_id: # if time intervals overlap if not (track.end_frame < other.start_frame or track.start_frame > other.end_frame): conflict = True break if conflict: continue # accept this match .. tell me hoiw and where to add it bacj"
+
+"can u dig deeper in the code and find out why that happens in the first place?> i mean the tracks look nothing alike. if theres a bug please propose a soplution. if its threshs or something else or faiss isnt good tell me"
+
+"how do i get all the prompts i sued in a chat?"
+
+"Give me all the prompts from this conversation"
